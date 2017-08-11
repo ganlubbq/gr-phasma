@@ -43,6 +43,7 @@ namespace gr
 	      d_features_num (JAGA_FEATURES_NUM)
       {
 	d_outbuf = new float[JAGA_FEATURES_NUM];
+	d_inbuf = new gr_complex[d_samples_num];
 
 	// create fft plan to be used for channel power measurements
 	d_fft =  new fft::fft_complex (d_samples_num, true, 1);
@@ -54,12 +55,16 @@ namespace gr
 	d_psd = (float*) volk_malloc (d_samples_num * sizeof(float), alignment);
 
 	d_max = (uint16_t*) volk_malloc (sizeof(uint16_t), alignment);
+	d_shift = (gr_complex*) volk_malloc (d_samples_num * sizeof(gr_complex),
+						     32);
       }
 
       jaga::~jaga ()
       {
 	delete[] d_outbuf;
 	delete d_fft;
+	delete[] d_inbuf;
+	volk_free (d_shift);
 	volk_free (d_mean);
 	volk_free (d_stddev);
 	volk_free (d_abs);
@@ -80,7 +85,7 @@ namespace gr
 	float inst_amp_var = compute_instant_amp_variance (in);
 	float max_psd_inst_amp = compute_max_psd_instant_amp (in);
 	d_outbuf[0] = inst_amp_var;
-	d_outbuf[1] = max_psd_inst_amp;
+//	d_outbuf[1] = max_psd_inst_amp;
 
 	/*
 	 * Standard deviation of angle, imaginary and real part
@@ -90,9 +95,9 @@ namespace gr
 	  d_tmp_i.push_back (in[s].imag ());
 	  d_tmp_q.push_back (in[s].real ());
 	}
-	d_outbuf[2] = compute_standard_deviation (&d_tmp_angle);
-	d_outbuf[3] = compute_standard_deviation (&d_tmp_i);
-	d_outbuf[4] = compute_standard_deviation (&d_tmp_q);
+//	d_outbuf[2] = compute_standard_deviation (&d_tmp_angle);
+//	d_outbuf[3] = compute_standard_deviation (&d_tmp_i);
+//	d_outbuf[4] = compute_standard_deviation (&d_tmp_q);
 
 	/*
 	 * Standard deviation of angle, imaginary and real part differences
@@ -104,7 +109,17 @@ namespace gr
 	  d_tmp_q_diff.push_back (in[s + 1].real () - in[s].real ());
 	}
 
-	d_outbuf[5] = compute_standard_deviation (&d_tmp_angle_diff);
+	d_outbuf[1] = compute_standard_deviation (&d_tmp_angle_diff);
+
+//	std::cout << "PSK FEATURES" << std::endl;
+	memcpy (d_fft->get_inbuf(), in, d_samples_num * sizeof(gr_complex));
+
+	d_outbuf[2] = multiply_and_detect (in);
+//	std::cout << d_outbuf[6] << std::endl;
+
+//	d_outbuf[7] = multiply_and_detect (in);
+//	d_outbuf[7] = multiply_and_detect (in);
+//	std::cout << d_outbuf[7] << std::endl;
 
 	d_tmp_angle.clear ();
 	d_tmp_i.clear ();
@@ -165,6 +180,39 @@ namespace gr
 	volk_32f_stddev_and_mean_32f_x2 (d_stddev, d_mean, d_abs,
 					 d_samples_num);
 	return std::pow (d_stddev[0], 2);
+      }
+
+      float
+      jaga::multiply_and_detect (const gr_complex* in)
+      {
+	uint16_t max_idx[1];
+	float curr;
+
+	volk_32fc_x2_multiply_32fc (d_fft->get_inbuf (), d_fft->get_inbuf (), in,
+				    d_samples_num);
+
+	d_fft->execute ();
+
+	/* Perform shifting and cropping on squared magnitude max noise-floor*/
+	memcpy (&d_shift[0], &d_fft->get_outbuf ()[d_samples_num / 2],
+		sizeof(gr_complex) * (d_samples_num / 2));
+	memcpy (&d_shift[d_samples_num / 2], d_fft->get_outbuf (),
+		sizeof(gr_complex) * (d_samples_num / 2));
+
+	volk_32fc_magnitude_32f (d_psd, d_shift, d_samples_num);
+
+	for (size_t i=0; i<d_samples_num; i++) {
+	  d_psd[i] = 10*log10(pow(d_psd[i],2));
+	}
+	volk_32f_stddev_and_mean_32f_x2 (d_stddev, d_mean, d_psd,
+						 d_samples_num);
+
+	volk_32fc_index_max_16u(max_idx, d_shift, d_samples_num);
+
+	if (abs(d_psd[max_idx[0]] - d_mean[0]) > 20) {
+	  return 1;
+	}
+	return 0;
       }
 
       size_t

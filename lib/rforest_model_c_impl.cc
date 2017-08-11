@@ -86,7 +86,7 @@ namespace gr
 	    d_filename (filename),
 	    d_port_label (d_ninport)
     {
-      set_output_multiple (100 * d_npredictors);
+      set_output_multiple (d_npredictors);
       d_input = (gr_complex*) malloc (d_npredictors * sizeof(gr_complex));
       d_rfmodel = cv::ml::RTrees::create ();
       d_featurset = new featureset::jaga(d_npredictors);
@@ -98,13 +98,13 @@ namespace gr
      */
     rforest_model_c_impl::~rforest_model_c_impl ()
     {
-//      cv::Mat mat = d_rfmodel->getVarImportance();
-//      for (size_t idr = 0; idr < (size_t)mat.rows; idr++) {
-//      	for (size_t idc = 0; idc < (size_t)mat.cols; idc++) {
-//      	  printf ("%f ", mat.at<float> (idr, idc));
-//      	}
-//      	printf ("\n");
-//            }
+      cv::Mat mat = d_rfmodel->getVarImportance();
+      for (size_t idr = 0; idr < (size_t)mat.rows; idr++) {
+      	for (size_t idc = 0; idc < (size_t)mat.cols; idc++) {
+      	  printf ("%f ", mat.at<float> (idr, idc));
+      	}
+      	printf ("\n");
+            }
     }
 
     static void
@@ -142,6 +142,7 @@ namespace gr
 	  memcpy (d_input, &in[i * d_npredictors],
 		  d_npredictors * sizeof(gr_complex));
 
+//	  std::cout << "LABEL" << d_port_label[n] << std::endl;
 	  d_featurset->generate((const gr_complex*)d_input);
 
 	  /* Insert new dataset row */

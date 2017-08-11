@@ -24,7 +24,7 @@
 #include <phasma/api.h>
 #include <gnuradio/fft/fft.h>
 
-#define JAGA_FEATURES_NUM 6
+#define JAGA_FEATURES_NUM 3
 
 namespace gr
 {
@@ -66,6 +66,10 @@ namespace gr
 	double
 	compute_standard_deviation (std::vector<float>* in);
 
+	float
+	multiply_and_detect (const gr_complex *in);
+
+
 	std::vector<float> d_tmp_angle;
 	std::vector<float> d_tmp_angle_diff;
 	std::vector<float> d_tmp_i;
@@ -83,6 +87,9 @@ namespace gr
 
 	// fft plan for channel measurements
 	fft::fft_complex* d_fft;
+
+	gr_complex* d_inbuf;
+	gr_complex* d_shift;
 
 	size_t d_samples_num;
 	size_t d_features_num;

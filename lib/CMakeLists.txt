@@ -38,7 +38,7 @@ list(APPEND phasma_sources
     signal_separator_impl.cc
     sigmf_debug_impl.cc
     featuresets/dummy_featureset.cc
-    featuresets/raw_iq_featureset.cc 
+    featuresets/raw_iq_featureset.cc
     featuresets/jaga.cc
     classifier.cc)
 

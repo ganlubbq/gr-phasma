@@ -86,7 +86,7 @@ namespace gr
 	    d_filename (filename),
 	    d_port_label (d_ninport)
     {
-      set_output_multiple (100 * d_npredictors);
+      set_output_multiple (d_npredictors);
       d_input = (float*) malloc (d_npredictors * sizeof(float));
       d_rfmodel = cv::ml::RTrees::create ();
       d_featurset = new featureset::raw_iq_featureset(d_npredictors);

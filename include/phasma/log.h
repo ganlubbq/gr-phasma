@@ -13,8 +13,8 @@
 #include <string.h>
 #include <sys/syscall.h>
 
-#define ENABLE_NCURSES 1
-#define PHASMA_MESSAGES 0
+#define ENABLE_NCURSES 0
+#define PHASMA_MESSAGES 1
 #define PHASMA_DEBUG_MESSAGES 0
 
 #if PHASMA_MESSAGES
@@ -40,8 +40,12 @@
 #define PHASMA_ERROR(M, ...) 							\
 	fprintf(stderr, "[ERROR] %s:%d: " M "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
+#if PHASMA_MESSAGES
 #define PHASMA_WARN(M, ...) 								\
 	fprintf(stderr, "[WARNING] %s:%d: " M "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#else
+#define PHASMA_WARN(M, ...)
+#endif
 
 #if PHASMA_DEBUG_MESSAGES
 #define PHASMA_DEBUG(M, ...) 							\
@@ -49,7 +53,5 @@
 #else
 #define PHASMA_DEBUG(M, ...)
 #endif
-
-
 
 #endif /* INCLUDE_PHASMA_LOG_H_ */
